@@ -84,7 +84,23 @@ If not authenticated, initiate login:
 bee login --agent
 ```
 
-This returns a URL. Provide the URL to the user and instruct them to open it in their browser to complete authentication. Wait for confirmation before proceeding with other commands.
+### Agent Authentication Flow
+
+The `--agent` flag initiates a secure authentication flow designed for AI agents. The command outputs detailed instructions that must be followed carefully:
+
+1. **Read and relay the output**: The command prints a welcome message, explains the authentication process, and provides an authentication link. Present this information to the user clearly.
+
+2. **Authentication link**: The output includes a URL like `https://bee.computer/connect/{requestId}`. The user must open this link in their browser and follow the instructions there to approve the connection.
+
+3. **Wait for approval**: The CLI will automatically poll and wait for the user to complete authorization. Do not interrupt this process while waiting.
+
+4. **Resumable sessions**: If the process is interrupted (killed or stopped), it can be restarted by running `bee login --agent` again. The CLI will resume the previous authentication session if it hasn't expired, preserving the same authentication link.
+
+5. **Expiration**: Authentication requests expire after approximately 5 minutes. If expired, a new session will be started automatically.
+
+6. **Success confirmation**: Once the user approves, the CLI outputs a success message with the authenticated user's name. Only proceed with other commands after seeing this confirmation.
+
+**Important**: Always read and follow the prompts from the command output. The CLI provides specific instructions tailored to the current authentication state (new session, resumed session, or expired session).
 
 ## Commands
 
