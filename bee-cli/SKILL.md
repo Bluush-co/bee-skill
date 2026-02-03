@@ -226,9 +226,9 @@ Options:
 
 ## Common Workflows
 
-### Understanding the Owner
+### Quick Context - Understanding the Owner
 
-To learn about the owner and their context:
+For quick context about the owner:
 ```bash
 bee facts list
 bee daily
@@ -255,3 +255,198 @@ bee sync --output ./my-bee-data
 ```
 
 This creates markdown files for facts, todos, daily summaries, and conversation transcripts.
+
+## Deep Learning About the Owner
+
+When you need to build comprehensive knowledge about the owner by processing their entire conversation history, use the following multi-agent workflow. This is useful for building a rich understanding of who the owner is, their relationships, work, interests, and life context.
+
+### Overview
+
+The deep learning workflow processes conversations in batches using a chain of subagents. Each subagent:
+1. Fetches a batch of conversations (100 at a time)
+2. Reads the current `user.md` profile
+3. Analyzes conversations and extracts insights
+4. Updates `user.md` with new information
+5. Writes a summary to a handoff file
+6. Spawns the next subagent to continue processing older conversations
+
+This architecture optimizes context usage by:
+- Running heavy processing in subagents (isolated context)
+- Passing state via files rather than copying text between agents
+- Allowing the main agent to remain responsive
+- Enabling progress reporting after each batch
+
+### File Structure
+
+Create these files in the working directory:
+
+- `user.md` - Cumulative profile of the owner (persistent, updated by each subagent)
+- `bee-learning-summary.md` - Handoff file with latest summary and cursor for next batch
+- `bee-learning-progress.md` - Progress log showing what was processed and when
+
+### Workflow Steps
+
+#### Step 1: Initialize (Main Agent)
+
+Create initial `user.md` if it doesn't exist:
+```markdown
+# User Profile
+
+This document contains learned information about the owner from their Bee conversations.
+
+## Basic Information
+(To be populated)
+
+## Relationships
+(To be populated)
+
+## Work & Projects
+(To be populated)
+
+## Interests & Hobbies
+(To be populated)
+
+## Preferences
+(To be populated)
+
+## Important Dates & Events
+(To be populated)
+
+## Notes
+(To be populated)
+```
+
+#### Step 2: Launch First Processing Subagent
+
+Spawn a subagent with this task:
+
+```
+Process Bee conversations to learn about the owner.
+
+1. Fetch the 100 most recent conversations:
+   bee conversations list --limit 100
+
+2. Read the current user.md file
+
+3. For each conversation, extract:
+   - Who the owner talked to (relationships)
+   - Topics discussed (interests, work projects)
+   - Personal details mentioned (preferences, facts about their life)
+   - Commitments made (things they said they would do)
+   - Important dates or events mentioned
+
+4. Update user.md with new information, organized by category.
+   Merge with existing content, don't overwrite.
+   Add timestamps for when information was learned.
+
+5. Write a summary to bee-learning-summary.md:
+   - Date range of conversations processed
+   - Key insights discovered
+   - The cursor value for fetching the next batch (from API response)
+   - Count of conversations processed so far
+
+6. Update bee-learning-progress.md with progress entry
+
+7. If there are more conversations (cursor returned), spawn the next
+   subagent to continue processing. Pass only the file paths, not
+   the actual content - the next agent will read from files.
+```
+
+#### Step 3: Chain Processing Subagents
+
+Each subsequent subagent receives a task like:
+
+```
+Continue processing Bee conversations to learn about the owner.
+
+1. Read bee-learning-summary.md to get the cursor for the next batch
+
+2. Fetch the next 100 conversations:
+   bee conversations list --limit 100 --cursor <cursor_from_summary>
+
+3. Read the current user.md file
+
+4. Process conversations and extract insights (same as previous agent)
+
+5. Update user.md with new information (merge, don't overwrite)
+
+6. Update bee-learning-summary.md with:
+   - New date range processed
+   - New insights discovered
+   - Next cursor (or "complete" if no more conversations)
+   - Updated total count
+
+7. Update bee-learning-progress.md
+
+8. If there are more conversations, spawn the next subagent.
+   If no cursor returned (reached the end), write final summary
+   and report completion.
+```
+
+#### Step 4: Progress Reporting
+
+After processing each week's worth of conversations (approximately), the subagent should report back to the main conversation with:
+- Summary of what was learned in that time period
+- Notable events or conversations
+- Any significant changes to the user profile
+
+This keeps the user informed of progress without overwhelming them with details.
+
+### Conversation List API
+
+Fetch conversations with pagination:
+```bash
+# First batch (most recent)
+bee conversations list --limit 100
+
+# Subsequent batches using cursor from previous response
+bee conversations list --limit 100 --cursor <cursor_value>
+```
+
+The API returns:
+- `conversations`: Array of conversation objects
+- `cursor`: Pagination cursor for next batch (null when no more data)
+
+### Best Practices
+
+1. **File-based handoff**: Always pass state between subagents via files (`bee-learning-summary.md`), never by copying large amounts of text into the task prompt. This preserves context window for actual processing.
+
+2. **Incremental updates**: Each subagent should merge new information into `user.md`, not replace it. Use clear section headers and timestamps.
+
+3. **Progress tracking**: Maintain `bee-learning-progress.md` as a log so you can resume if interrupted and track what's been processed.
+
+4. **Weekly summaries**: Report meaningful summaries to the user periodically (e.g., after each week of conversations processed) rather than after every batch.
+
+5. **Graceful completion**: When the cursor is null (no more conversations), write a final summary and notify the user that deep learning is complete.
+
+6. **Error handling**: If a subagent fails, the next attempt can read the progress files and resume from where it left off.
+
+### Example Progress File
+
+```markdown
+# Bee Learning Progress
+
+## Session: 2024-01-15
+
+- 14:30 - Started deep learning process
+- 14:32 - Processed conversations from Jan 10-15 (87 conversations)
+- 14:35 - Processed conversations from Jan 5-10 (92 conversations)
+- 14:38 - Processed conversations from Dec 28 - Jan 5 (78 conversations)
+- 14:40 - Week 1 summary reported to user
+- 14:42 - Processed conversations from Dec 21-28 (65 conversations)
+...
+- 15:30 - Completed processing all conversations (1,247 total)
+```
+
+### When to Use Deep Learning
+
+Use this workflow when:
+- First establishing a relationship with a new user
+- User explicitly requests comprehensive analysis of their history
+- Building context for a long-term assistant relationship
+- User wants to understand patterns in their own conversations
+
+Do not use for:
+- Quick questions about recent events (use `bee daily` or recent conversations)
+- Looking up specific facts (use `bee facts list`)
+- Finding a particular conversation (use `bee conversations list` and search)
