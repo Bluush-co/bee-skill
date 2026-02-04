@@ -287,16 +287,86 @@ View a specific date:
 bee daily --date <YYYY-MM-DD>
 ```
 
-### Sync Data to Markdown
+### Periodic Sync - Real-Time Updates with `bee changed`
 
-Export all Bee data to local markdown files for offline access or integration with other tools:
+For periodic checks and real-time updates, use `bee changed`. This is the recommended way to monitor for new data and know exactly what changed.
+
+```bash
+bee changed
+```
+
+Options:
+- `--cursor <cursor>` - Resume from a previous position to get only new changes
+- `--json` - Output in JSON format
+
+**What it returns**:
+- Time range covered (since/until timestamps)
+- `Next Cursor` for subsequent calls
+- Full details of all changed entities:
+  - New and updated facts (confirmed and pending)
+  - New and updated todos
+  - New and updated daily summaries
+  - New and updated conversations
+  - New and updated journals
+
+#### Cursor Handling
+
+The cursor is essential for efficient change tracking. The output includes a `Next Cursor` value that must be persisted for subsequent calls.
+
+**First call** (no cursor):
+```bash
+bee changed
+```
+Returns recent changes and outputs a `Next Cursor: <value>` line.
+
+**Subsequent calls** (with cursor):
+```bash
+bee changed --cursor <cursor_value>
+```
+Returns only changes that occurred after the cursor position.
+
+**Critical: When to persist the cursor**
+
+The cursor must be saved **only after you have fully processed the changes**, not immediately after receiving them. This ensures that if processing fails or is interrupted, you can retry with the same cursor and receive the same changes again.
+
+**Cursor workflow**:
+1. Read the stored cursor from `.bee-cursor` file (if exists)
+2. Call `bee changed --cursor <cursor>` (or without cursor on first run)
+3. The output includes `Next Cursor: <value>` - note this value but DO NOT save it yet
+4. Process all the returned changes (update user.md, handle todos, etc.)
+5. Only after processing completes successfully, save the new cursor to `.bee-cursor`
+6. Repeat from step 1 on next check
+
+**Example**:
+```
+# Output from bee changed includes:
+Next Cursor: abc123xyz
+
+# After processing all changes successfully:
+echo "abc123xyz" > .bee-cursor
+```
+
+**Why this matters**: If you save the cursor before processing and then processing fails, you'll lose those changes forever. By saving only after successful processing, you guarantee exactly-once processing of each change.
+
+### Full Sync - Export Everything to Markdown
+
+If you want to sync everything to local markdown files, use `bee sync`. This creates a complete local library of all Bee data.
+
 ```bash
 bee sync
 ```
 
 Options:
-- `--output <dir>` - Output directory (default: ./bee-data)
-- `--depth <n>` - How far back to sync
+- `--output <dir>` - Output directory (default: ./bee-sync)
+- `--only <targets>` - Sync specific data types: `facts`, `todos`, `daily`, `conversations` (comma-separated)
+
+**Purpose**: Full sync exports all Bee data to markdown files. This is useful for:
+- Creating a complete offline backup
+- Integration with tools that read markdown
+- Full-text search across all historical data
+- Initial setup before using `bee changed` for incremental updates
+
+**Note**: Sync overwrites existing files and does not tell you what changed. For periodic checks where you need to know what's new, use `bee changed` instead.
 
 ## Common Workflows
 
