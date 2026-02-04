@@ -190,6 +190,44 @@ bee conversations get <conversation-id>
 
 Remember: Summaries may not capture everything or may slightly misrepresent what was said. When accuracy matters, always read the full utterances.
 
+### Journals - Voice Memos
+
+Journals are voice memos recorded by the owner through Bee. Unlike conversations (which are ambient recordings), journals are intentional recordings where the owner speaks directly to capture thoughts, ideas, or notes.
+
+#### Listing Journals
+
+```bash
+bee journals list
+```
+
+Returns a list of journal entries with:
+- Journal ID
+- State: `PREPARING` (recording), `ANALYZING` (processing), or `READY` (complete)
+- Transcribed text (summary)
+- Timestamps
+
+Options:
+- `--limit <n>` - Number of journals to return
+- `--cursor <cursor>` - Pagination cursor for more results
+- `--json` - Output in JSON format
+
+#### Getting Full Journal Details
+
+```bash
+bee journals get <id>
+```
+
+Returns the complete journal entry with full transcribed text.
+
+Options:
+- `--json` - Output in JSON format
+
+Use journals to understand:
+- The owner's personal thoughts and reflections
+- Ideas they wanted to remember
+- Notes to themselves
+- Voice memos about tasks or plans
+
 ### Todos - Track Commitments
 
 Todos are action items and commitments extracted from conversations.
