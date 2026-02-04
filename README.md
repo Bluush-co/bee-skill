@@ -11,11 +11,9 @@ A Claude Code skill for interacting with [Bee](https://github.com/bluush-co/bee-
 
 ## Installation
 
-1. Download `bee-cli.skill` from this repository
-2. Install in Claude Code:
-   ```
-   /install-skill bee-cli.skill
-   ```
+```
+npx skills add Bluush-co/bee-skill
+```
 
 ## Usage
 
